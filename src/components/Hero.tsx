@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Cloud, Shield, Users } from "lucide-react";
+import { ArrowRight, Cloud, Shield, Zap } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import { StatsCard } from "./StatsCard";
 
 export const Hero = () => {
   return (
@@ -32,15 +33,15 @@ export const Hero = () => {
             <div className="flex flex-wrap gap-6 text-sm">
               <div className="flex items-center gap-2 text-cloud-dark">
                 <Cloud className="w-4 h-4" />
-                <span>Unlimited Storage</span>
+                <span>1GB Free • 10GB Pro</span>
               </div>
               <div className="flex items-center gap-2 text-cloud-dark">
                 <Shield className="w-4 h-4" />
                 <span>Secure & Private</span>
               </div>
               <div className="flex items-center gap-2 text-cloud-dark">
-                <Users className="w-4 h-4" />
-                <span>Team Collaboration</span>
+                <Zap className="w-4 h-4" />
+                <span>Lightning Fast</span>
               </div>
             </div>
 
@@ -71,8 +72,8 @@ export const Hero = () => {
               <div className="flex items-center gap-6">
                 <div className="text-2xl font-bold text-cloud-blue">10K+</div>
                 <div className="text-sm text-muted-foreground">Active Users</div>
-                <div className="text-2xl font-bold text-cloud-blue">99.9%</div>
-                <div className="text-sm text-muted-foreground">Uptime</div>
+                <div className="text-2xl font-bold text-cloud-blue">650MB</div>
+                <div className="text-sm text-muted-foreground">Avg Usage</div>
               </div>
             </div>
           </div>
@@ -89,6 +90,11 @@ export const Hero = () => {
               <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-sky-blue rounded-full animate-float opacity-30"></div>
             </div>
           </div>
+        </div>
+        
+        {/* Stats Card */}
+        <div className="mt-20">
+          <StatsCard />
         </div>
       </div>
     </section>
