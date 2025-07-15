@@ -2,9 +2,6 @@ import { Button } from "@/components/ui/button";
 import { 
   Cloud, 
   Shield, 
-  Users, 
-  RefreshCw, 
-  Smartphone, 
   Zap,
   FileText,
   Search,
@@ -15,32 +12,14 @@ import featuresImage from "@/assets/features-bg.jpg";
 const features = [
   {
     icon: Cloud,
-    title: "Unlimited Storage",
-    description: "Store all your files with unlimited cloud storage. Never worry about running out of space again.",
+    title: "Secure Storage",
+    description: "Store your files securely with 1GB free storage or upgrade to 10GB with Pro plan.",
     color: "text-cloud-blue"
   },
   {
     icon: Shield,
     title: "Advanced Security",
     description: "Bank-level encryption and security measures to keep your files safe and protected.",
-    color: "text-sky-blue"
-  },
-  {
-    icon: Users,
-    title: "Team Collaboration",
-    description: "Share files and folders with your team. Real-time collaboration made simple.",
-    color: "text-ocean-blue"
-  },
-  {
-    icon: RefreshCw,
-    title: "Auto Sync",
-    description: "Automatically sync your files across all devices. Access your data anywhere, anytime.",
-    color: "text-cloud-blue"
-  },
-  {
-    icon: Smartphone,
-    title: "Mobile Access",
-    description: "Access your files on the go with our mobile apps for iOS and Android.",
     color: "text-sky-blue"
   },
   {

@@ -1,24 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Check, Star, TrendingUp, Clock } from "lucide-react";
+import { Check, Star, TrendingUp } from "lucide-react";
 
 const benefits = [
   {
     icon: TrendingUp,
     title: "Boost Productivity",
-    description: "Increase team productivity by 40% with seamless file sharing and collaboration tools.",
+    description: "Increase your personal productivity by 40% with organized file management and quick access.",
     stats: "40% increase"
-  },
-  {
-    icon: Clock,
-    title: "Save Time",
-    description: "Reduce file search time by 80% with our intelligent organization and search features.",
-    stats: "80% faster"
   },
   {
     icon: Star,
     title: "Enhance Security",
-    description: "99.9% uptime and enterprise-grade security keep your files safe and always accessible.",
-    stats: "99.9% uptime"
+    description: "Enterprise-grade security and encryption keep your files safe and always protected.",
+    stats: "Bank-level security"
   }
 ];
 
@@ -27,21 +21,21 @@ const testimonials = [
     name: "Sarah Johnson",
     role: "Product Manager",
     company: "TechCorp",
-    quote: "This platform revolutionized how our team collaborates. File sharing is now effortless and secure.",
+    quote: "This platform revolutionized how I manage my files. The storage is secure and access is lightning fast.",
     rating: 5
   },
   {
     name: "Mike Chen",
     role: "Creative Director",
     company: "DesignStudio",
-    quote: "The unlimited storage and fast sync capabilities have made our workflow incredibly smooth.",
+    quote: "The secure storage and intuitive interface have made our workflow incredibly smooth.",
     rating: 5
   },
   {
     name: "Emma Davis",
     role: "Team Lead",
     company: "StartupXYZ",
-    quote: "Best cloud storage solution we've used. The collaboration features are game-changing.",
+    quote: "Best cloud storage solution we've used. The security and reliability are outstanding.",
     rating: 5
   }
 ];
@@ -58,11 +52,11 @@ export const Benefits = () => {
               <span className="gradient-text block">Our Platform?</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Experience the benefits that make us the preferred choice for teams worldwide.
+              Experience the benefits that make us the preferred choice for users worldwide.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {benefits.map((benefit, index) => (
               <div 
                 key={index}
