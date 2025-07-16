@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Cloud, Shield, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 import { StatsCard } from "./StatsCard";
 
@@ -51,16 +52,22 @@ export const Hero = () => {
                 variant="hero" 
                 size="lg" 
                 className="text-lg px-8 py-6 h-auto"
+                asChild
               >
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
+                <Link to="/register">
+                  Get Started Free
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
               </Button>
               <Button 
                 variant="cloud" 
                 size="lg"
                 className="text-lg px-8 py-6 h-auto"
+                asChild
               >
-                Watch Demo
+                <Link to="/login">
+                  Sign In
+                </Link>
               </Button>
             </div>
 
