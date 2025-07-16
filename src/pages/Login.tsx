@@ -6,13 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, CloudDrizzle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { Separator } from '@/components/ui/separator';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,6 +91,35 @@ export default function Login() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          <div className="flex items-center my-4">
+            <Separator className="flex-grow" />
+            <span className="px-3 text-muted-foreground text-sm">OR</span>
+            <Separator className="flex-grow" />
+          </div>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  loginWithGoogle(credentialResponse.credential)
+                    .then(() => {
+                      // Add this navigation after successful Google login
+                      navigate('/dashboard');
+                    })
+                    .catch((error) => {
+                      console.error('Google login navigation error:', error);
+                    });
+                }
+              }}
+              onError={() => {
+                console.error('Google Login Failed');
+              }}
+              useOneTap
+              shape="rectangular"
+              text="signin_with"
+              theme="outline"
+              logo_alignment="center"
+            />
+          </div>
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{' '}
