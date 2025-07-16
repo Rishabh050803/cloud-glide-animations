@@ -6,6 +6,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { MoreVertical, Folder, FileText, Image, Video, Music, Archive, Eye, Download, Trash2, FolderOpen } from 'lucide-react';
 import { FolderItem, storageService } from '@/services/storageService';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FileGridProps {
   items: FolderItem[];
@@ -17,6 +27,7 @@ interface FileGridProps {
 export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNavigate, onRefresh }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>('');
+  const [itemToDelete, setItemToDelete] = useState<FolderItem | null>(null);
   const { toast } = useToast();
 
   const getFileIcon = (fileName: string) => {
@@ -98,19 +109,21 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
     }
   };
 
-  const handleDelete = async (item: FolderItem) => {
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+    
     try {
-      if (item.type === 'folder') {
-        await storageService.deleteFolder(item.path);
+      if (itemToDelete.type === 'folder') {
+        await storageService.deleteFolder(itemToDelete.path);
         toast({
           title: "Folder deleted",
-          description: `${item.name} has been deleted.`,
+          description: `${itemToDelete.name} and all its contents have been deleted.`,
         });
-      } else if (item.uuid) {
-        await storageService.deleteFile(item.uuid);
+      } else if (itemToDelete.uuid) {
+        await storageService.deleteFile(itemToDelete.uuid);
         toast({
           title: "File deleted",
-          description: `${item.name} has been deleted.`,
+          description: `${itemToDelete.name} has been deleted.`,
         });
       }
       onRefresh();
@@ -120,9 +133,15 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
         description: "Could not delete the item.",
         variant: "destructive",
       });
+    } finally {
+      setItemToDelete(null);
     }
   };
-
+  
+  const handleDelete = (item: FolderItem) => {
+    setItemToDelete(item);
+  };
+  
   const handleOpenFolder = (folderName: string) => {
     const newPath = currentPath ? `${currentPath}/${folderName}` : folderName;
     onNavigate(newPath);
@@ -136,88 +155,103 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
     setPreviewFileName('');
   };
 
+  // Filter out the .folder_placeholder files before displaying
+  const visibleItems = items.filter(item => 
+    !(item.type === 'file' && item.name === '.folder_placeholder')
+  );
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {items.map((item, index) => {
-          const IconComponent = item.type === 'folder' ? Folder : getFileIcon(item.name);
-          
-          return (
-            <Card 
-              key={index}
-              className="group hover:shadow-medium transition-all duration-200 cursor-pointer bg-background hover:bg-muted/50"
-              onDoubleClick={() => handleDoubleClick(item)}
-            >
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`p-2 rounded-lg ${item.type === 'folder' ? 'bg-sky-blue/20 text-sky-blue' : 'bg-cloud-blue/20 text-cloud-blue'}`}>
-                    <IconComponent className="w-6 h-6" />
+        {visibleItems.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Folder className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">This folder is empty</h3>
+            <p className="text-muted-foreground mb-4">
+              Upload files or create a new folder to get started
+            </p>
+          </div>
+        ) : (
+          visibleItems.map((item, index) => {
+            const IconComponent = item.type === 'folder' ? Folder : getFileIcon(item.name);
+            
+            return (
+              <Card 
+                key={index}
+                className="group hover:shadow-medium transition-all duration-200 cursor-pointer bg-background hover:bg-muted/50"
+                onDoubleClick={() => handleDoubleClick(item)}
+              >
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`p-2 rounded-lg ${item.type === 'folder' ? 'bg-sky-blue/20 text-sky-blue' : 'bg-cloud-blue/20 text-cloud-blue'}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border border-border">
+                        {item.type === 'folder' ? (
+                          <>
+                            <DropdownMenuItem onClick={() => handleOpenFolder(item.name)}>
+                              <FolderOpen className="w-4 h-4 mr-2" />
+                              Open
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(item)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <>
+                            <DropdownMenuItem onClick={() => item.uuid && handlePreview(item.uuid, item.name)}>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => item.uuid && handleDownload(item.uuid, item.name)}>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(item)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-background border border-border">
-                      {item.type === 'folder' ? (
-                        <>
-                          <DropdownMenuItem onClick={() => handleOpenFolder(item.name)}>
-                            <FolderOpen className="w-4 h-4 mr-2" />
-                            Open
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(item)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </>
-                      ) : (
-                        <>
-                          <DropdownMenuItem onClick={() => item.uuid && handlePreview(item.uuid, item.name)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Preview
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => item.uuid && handleDownload(item.uuid, item.name)}>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(item)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  
+                  <div>
+                    <p className="font-medium text-sm truncate mb-1">{item.name}</p>
+                    {item.type === 'file' && item.size && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(item.size)}
+                      </p>
+                    )}
+                    {item.created_at && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                
-                <div>
-                  <p className="font-medium text-sm truncate mb-1">{item.name}</p>
-                  {item.type === 'file' && item.size && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(item.size)}
-                    </p>
-                  )}
-                  {item.created_at && (
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </Card>
-          );
-        })}
+              </Card>
+            );
+          })
+        )}
       </div>
 
       <Dialog open={!!previewUrl} onOpenChange={closePreview}>
@@ -246,6 +280,28 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete?.type === 'folder' 
+                ? `This will delete "${itemToDelete?.name}" and all its contents. This action cannot be undone.`
+                : `This will delete "${itemToDelete?.name}". This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

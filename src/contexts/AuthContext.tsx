@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface User {
@@ -12,6 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -27,20 +28,83 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Single useEffect to handle session restoration
   useEffect(() => {
-    // Check for existing token on mount
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // Verify token validity by making a request to get user info
-      // For now, we'll just set loading to false
-      // In a real app, you'd verify the token with the backend
-    }
-    setLoading(false);
+    const restoreUserSession = async () => {
+      try {
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (!accessToken || !refreshToken) {
+          setLoading(false);
+          return;
+        }
+
+        // Use the new /auth/me endpoint to validate token and get user data
+        const response = await fetch('http://127.0.0.1:8000/auth/me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          // Token is valid, set user data
+          const userData = await response.json();
+          setUser(userData);
+        } else if (response.status === 401) {
+          // Token is invalid or expired, try to refresh
+          const refreshResponse = await fetch('http://127.0.0.1:8000/auth/refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+
+          if (refreshResponse.ok) {
+            // Successfully refreshed token
+            const data = await refreshResponse.json();
+            localStorage.setItem('access_token', data.access_token);
+            if (data.refresh_token) {
+              localStorage.setItem('refresh_token', data.refresh_token);
+            }
+
+            // Now try to get user data with new token
+            const userResponse = await fetch('http://127.0.0.1:8000/auth/me', {
+              headers: {
+                Authorization: `Bearer ${data.access_token}`
+              }
+            });
+
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              setUser(userData);
+            } else {
+              // Still failed, clear tokens
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+            }
+          } else {
+            // Refresh failed, clear tokens
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreUserSession();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -72,6 +136,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast({
         title: "Login failed",
         description: "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/auth/login/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_token: idToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Google login failed');
+      }
+
+      const data = await response.json();
+      
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      setUser(data.user);
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome to Cloud Glide!",
+      });
+    } catch (error) {
+      console.error('Google login error:', error);
+      toast({
+        title: "Google login failed",
+        description: "There was an error logging in with Google. Please try again.",
         variant: "destructive",
       });
       throw error;
@@ -139,7 +238,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      loginWithGoogle, 
+      register, 
+      logout, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

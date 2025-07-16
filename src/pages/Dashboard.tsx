@@ -19,6 +19,7 @@ import {
   FolderPlus
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { NewFolderDialog } from '@/components/NewFolderDialog';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -28,6 +29,8 @@ export default function Dashboard() {
   const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -96,18 +99,46 @@ export default function Dashboard() {
 
   const getBreadcrumbs = () => {
     if (!currentPath) return [];
-    return currentPath.split('/');
+    return currentPath.split('/').filter(segment => segment.trim() !== '');
   };
 
   const navigateToBreadcrumb = (index: number) => {
     const breadcrumbs = getBreadcrumbs();
-    const newPath = breadcrumbs.slice(0, index + 1).join('/');
-    setCurrentPath(newPath);
+    if (index < 0) {
+      // Navigate to root
+      setCurrentPath('');
+    } else {
+      // Navigate to specific breadcrumb
+      const newPath = breadcrumbs.slice(0, index + 1).join('/');
+      setCurrentPath(newPath);
+    }
   };
-
+  
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleCreateFolder = async (folderName: string) => {
+    try {
+      setCreatingFolder(true);
+      await storageService.createFolder(folderName, currentPath);
+      toast({
+        title: "Folder created",
+        description: `${folderName} has been created.`,
+      });
+      loadFolderContents();
+      loadStorageUsage();
+    } catch (error) {
+      toast({
+        title: "Failed to create folder",
+        description: "There was an error creating the folder.",
+        variant: "destructive",
+      });
+      console.error("Folder creation error:", error);
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
 
   if (loading && items.length === 0) {
     return (
@@ -144,7 +175,7 @@ export default function Dashboard() {
                   Home
                 </Button>
                 {getBreadcrumbs().map((folder, index) => (
-                  <React.Fragment key={index}>
+                  <div key={index} className="flex items-center">
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     <Button
                       variant="ghost"
@@ -154,7 +185,7 @@ export default function Dashboard() {
                     >
                       {folder}
                     </Button>
-                  </React.Fragment>
+                  </div>
                 ))}
               </nav>
             </div>
@@ -190,7 +221,11 @@ export default function Dashboard() {
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Files
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setCreateFolderDialogOpen(true)}
+                  >
                     <FolderPlus className="w-4 h-4 mr-2" />
                     New Folder
                   </Button>
@@ -275,14 +310,20 @@ export default function Dashboard() {
                     <p className="text-muted-foreground mb-4">
                       {searchTerm 
                         ? `No files or folders match "${searchTerm}"`
-                        : 'Upload your first file to get started'
+                        : 'Get started by uploading files or creating folders'
                       }
                     </p>
                     {!searchTerm && (
-                      <Button onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Files
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button onClick={() => fileInputRef.current?.click()}>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Files
+                        </Button>
+                        <Button variant="outline" onClick={() => setCreateFolderDialogOpen(true)}>
+                          <FolderPlus className="w-4 h-4 mr-2" />
+                          New Folder
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -299,6 +340,12 @@ export default function Dashboard() {
         multiple
         onChange={handleFileUpload}
         className="hidden"
+      />
+      <NewFolderDialog
+        open={createFolderDialogOpen}
+        onOpenChange={setCreateFolderDialogOpen}
+        onCreateFolder={handleCreateFolder}
+        isLoading={creatingFolder}
       />
     </div>
   );
