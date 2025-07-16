@@ -144,7 +144,7 @@ export default function Dashboard() {
                   Home
                 </Button>
                 {getBreadcrumbs().map((folder, index) => (
-                  <React.Fragment key={index}>
+                  <div key={index} className="flex items-center">
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     <Button
                       variant="ghost"
@@ -154,7 +154,7 @@ export default function Dashboard() {
                     >
                       {folder}
                     </Button>
-                  </React.Fragment>
+                  </div>
                 ))}
               </nav>
             </div>

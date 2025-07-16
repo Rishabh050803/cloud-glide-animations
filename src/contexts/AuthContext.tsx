@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface User {
@@ -27,20 +27,83 @@ export const useAuth = () => {
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Single useEffect to handle session restoration
   useEffect(() => {
-    // Check for existing token on mount
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // Verify token validity by making a request to get user info
-      // For now, we'll just set loading to false
-      // In a real app, you'd verify the token with the backend
-    }
-    setLoading(false);
+    const restoreUserSession = async () => {
+      try {
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (!accessToken || !refreshToken) {
+          setLoading(false);
+          return;
+        }
+
+        // Use the new /auth/me endpoint to validate token and get user data
+        const response = await fetch('http://127.0.0.1:8000/auth/me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          // Token is valid, set user data
+          const userData = await response.json();
+          setUser(userData);
+        } else if (response.status === 401) {
+          // Token is invalid or expired, try to refresh
+          const refreshResponse = await fetch('http://127.0.0.1:8000/auth/refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+
+          if (refreshResponse.ok) {
+            // Successfully refreshed token
+            const data = await refreshResponse.json();
+            localStorage.setItem('access_token', data.access_token);
+            if (data.refresh_token) {
+              localStorage.setItem('refresh_token', data.refresh_token);
+            }
+
+            // Now try to get user data with new token
+            const userResponse = await fetch('http://127.0.0.1:8000/auth/me', {
+              headers: {
+                Authorization: `Bearer ${data.access_token}`
+              }
+            });
+
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              setUser(userData);
+            } else {
+              // Still failed, clear tokens
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+            }
+          } else {
+            // Refresh failed, clear tokens
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore session:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreUserSession();
   }, []);
 
   const login = async (email: string, password: string) => {
