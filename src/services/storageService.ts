@@ -134,14 +134,29 @@ class StorageServiceImpl {
   }
 
   async createFolder(folderName: string, currentPath: string = ''): Promise<any> {
-    // Create a tiny empty file as a placeholder
-    const dummyFile = new File([''], '.folder_placeholder', { type: 'text/plain' });
-    
-    // Determine the path where to create the folder
-    const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
-    
-    // Upload the dummy file to the new folder path
-    return this.uploadFile(dummyFile, folderPath);
+    try {
+      // Create a tiny empty file as a placeholder
+      const dummyFile = new File([''], '.folder_placeholder', { type: 'text/plain' });
+      
+      // Determine the path where to create the folder
+      const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+      
+      // Upload the dummy file to the new folder path
+      return this.uploadFile(dummyFile, folderPath);
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      throw new Error(`Failed to create folder: ${folderName}`);
+    }
+  }
+
+  // Add a utility method to check if a path exists
+  async checkPathExists(path: string): Promise<boolean> {
+    try {
+      const items = await this.exploreFolder(path);
+      return true; // If we got items or empty array, the path exists
+    } catch (error) {
+      return false; // If we got an error, the path doesn't exist
+    }
   }
 }
 
