@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ENDPOINTS } from '@/config/api';
 
 interface User {
   uid: string;
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Use the new /auth/me endpoint to validate token and get user data
-        const response = await fetch('http://127.0.0.1:8000/auth/me', {
+        const response = await fetch(ENDPOINTS.AUTH.ME, {
           headers: {
             Authorization: `Bearer ${accessToken}`
           }
@@ -58,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(userData);
         } else if (response.status === 401) {
           // Token is invalid or expired, try to refresh
-          const refreshResponse = await fetch('http://127.0.0.1:8000/auth/refresh', {
+          const refreshResponse = await fetch(ENDPOINTS.AUTH.REFRESH, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             // Now try to get user data with new token
-            const userResponse = await fetch('http://127.0.0.1:8000/auth/me', {
+            const userResponse = await fetch(ENDPOINTS.AUTH.ME, {
               headers: {
                 Authorization: `Bearer ${data.access_token}`
               }
@@ -113,7 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       formData.append('username', email);
       formData.append('password', password);
 
-      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+      const response = await fetch(ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         body: formData,
       });
@@ -144,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loginWithGoogle = async (idToken: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/login/google', {
+      const response = await fetch(ENDPOINTS.AUTH.GOOGLE_LOGIN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/register', {
+      const response = await fetch(ENDPOINTS.AUTH.REGISTER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -193,6 +194,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('User with this email already exists');
+        }
         throw new Error('Registration failed');
       }
 
@@ -201,9 +205,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Please check your email to verify your account.",
       });
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Please try again with different credentials.';
       toast({
         title: "Registration failed",
-        description: "Please try again with different credentials.",
+        description: errorMsg,
         variant: "destructive",
       });
       throw error;
@@ -214,7 +219,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await fetch('http://127.0.0.1:8000/auth/logout', {
+        // Add a logout endpoint to your api.ts file if it doesn't exist
+        await fetch(`${ENDPOINTS.AUTH.BASE}/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
