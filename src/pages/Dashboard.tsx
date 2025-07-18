@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { NewFolderDialog } from '@/components/NewFolderDialog';
+import { StorageStatus } from '@/components/StorageStatus';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -64,35 +65,52 @@ export default function Dashboard() {
     }
   };
 
+  // Updated to handle the new 2-stage upload process
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    for (const file of Array.from(files)) {
-      try {
+    // Create upload progress state if you want to show progress
+    const uploadingToast = toast({
+      title: "Uploading files",
+      description: "Starting upload process...",
+      duration: 100000, // Long duration
+    });
+
+    try {
+      for (const file of Array.from(files)) {
+        // The uploadFile method now handles all 3 stages internally
         await storageService.uploadFile(file, currentPath);
+        
         toast({
           title: "Upload successful",
           description: `${file.name} has been uploaded.`,
         });
-      } catch (error) {
-        toast({
-          title: "Upload failed",
-          description: `Failed to upload ${file.name}.`,
-          variant: "destructive",
-        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your files.",
+        variant: "destructive",
+      });
+    } finally {
+      // Dismiss the uploading toast
+      toast({
+        id: uploadingToast,
+      });
+      
+      // Refresh the file list and storage usage
+      loadFolderContents();
+      loadStorageUsage();
+      
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
     }
-
-    loadFolderContents();
-    loadStorageUsage();
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
-
+  
   const navigateToPath = (path: string) => {
     setCurrentPath(path);
   };

@@ -81,6 +81,7 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
 
   const handlePreview = async (fileUuid: string, fileName: string) => {
     try {
+      // Get signed URL directly - no need to convert to blob
       const url = await storageService.previewFile(fileUuid);
       setPreviewUrl(url);
       setPreviewFileName(fileName);
@@ -273,8 +274,24 @@ export const FileGrid: React.FC<FileGridProps> = ({ items, currentPath, onNaviga
                   <source src={previewUrl} />
                   Your browser does not support the audio tag.
                 </audio>
+              ) : previewFileName.match(/\.(pdf)$/i) ? (
+                <iframe 
+                  src={previewUrl} 
+                  className="w-full h-[70vh]" 
+                  title={previewFileName}
+                />
               ) : (
-                <iframe src={previewUrl} className="w-full h-[70vh]" title={previewFileName} />
+                <div className="text-center p-8">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <p>Preview not available for this file type.</p>
+                  <Button 
+                    onClick={() => handleDownload(item.uuid!, previewFileName)} 
+                    className="mt-4"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download File
+                  </Button>
+                </div>
               )}
             </div>
           )}
