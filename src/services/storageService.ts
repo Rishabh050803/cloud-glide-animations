@@ -1,6 +1,8 @@
 import { createApiClient } from '@/utils/apiClient';
+import { ENDPOINTS } from '@/config/api';
 
-const API_BASE = 'http://127.0.0.1:8000/storage';
+// Replace the hardcoded API_BASE with the imported ENDPOINTS
+const API_BASE = ENDPOINTS.STORAGE.BASE;
 
 export interface FileItem {
   uuid: string;
@@ -36,7 +38,7 @@ class StorageServiceImpl {
   private apiClient = createApiClient();
 
   async getStorageStatus(): Promise<{ status: string; provider: string }> {
-    const response = await this.apiClient.fetchWithAuth(`${API_BASE}/storage-status`);
+    const response = await this.apiClient.fetchWithAuth(ENDPOINTS.STORAGE.STORAGE_STATUS);
     
     if (!response.ok) {
       throw new Error('Failed to get storage status');
@@ -46,7 +48,7 @@ class StorageServiceImpl {
   }
 
   async getSupportedContentTypes(): Promise<string[]> {
-    const response = await this.apiClient.fetchWithAuth(`${API_BASE}/supported_content_types`);
+    const response = await this.apiClient.fetchWithAuth(ENDPOINTS.STORAGE.SUPPORTED_CONTENT_TYPES);
     
     if (!response.ok) {
       throw new Error('Failed to get supported content types');

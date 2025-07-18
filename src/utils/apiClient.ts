@@ -1,3 +1,5 @@
+import { ENDPOINTS } from '@/config/api';
+
 // Remove the hook import
 // import { useAuth } from '@/contexts/AuthContext';
 
@@ -81,7 +83,7 @@ async function refreshToken(): Promise<string | null> {
   
   try {
     console.log("Attempting to refresh token");
-    const response = await fetch('http://127.0.0.1:8000/auth/refresh', {
+    const response = await fetch(ENDPOINTS.AUTH.REFRESH, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
